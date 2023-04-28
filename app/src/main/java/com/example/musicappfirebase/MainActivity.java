@@ -12,10 +12,16 @@ import android.os.Bundle;
 import android.provider.OpenableColumns;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.jean.jcplayer.model.JcAudio;
+import com.example.jean.jcplayer.view.JcPlayerView;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -44,26 +50,75 @@ public class MainActivity extends AppCompatActivity {
     ArrayList<String> arrayListSongsUrl=new ArrayList<>();
     ArrayAdapter<String> arrayAdapter;
 
+    JcPlayerView jcPlayerView;
+    ArrayList<JcAudio> jcAudios=new ArrayList<>();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         listView=findViewById(R.id.myListView);
+        jcPlayerView=findViewById(R.id.jcPlayer);
+
 retreiveSongs();
+
+
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+                jcPlayerView.playAudio(jcAudios.get(position));
+                jcPlayerView.setVisibility(View.VISIBLE);
+                jcPlayerView.createNotification();
+            }
+        });
+
+
     }
 
     private void retreiveSongs() {
-        DatabaseReference databaseReference=FirebaseDatabase.getInstance().getReference("Songs");
+
+        DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Songs");
+
         databaseReference.addValueEventListener(new ValueEventListener() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                for (DataSnapshot ds: snapshot.getChildren()){
-                    Song songObj=ds.getValue(Song.class);
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                arrayListSongsName.clear();
+                arrayListSongsUrl.clear();
+
+
+                for(DataSnapshot ds :dataSnapshot.getChildren()){
+
+                    Song songObj = ds.getValue(Song.class);
                     arrayListSongsName.add(songObj.getSongName());
                     arrayListSongsUrl.add(songObj.getSongUrl());
+                    jcAudios.add(JcAudio.createFromURL(songObj.getSongName(),songObj.getSongUrl()));
+
 
                 }
-                arrayAdapter=new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_list_item_1,arrayListSongsName);
+
+
+
+                arrayAdapter = new ArrayAdapter<String>(MainActivity.this,android.R.layout.simple_list_item_1,arrayListSongsName){
+
+
+                    @NonNull
+                    @Override
+                    public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+
+                        View view = super.getView(position,convertView,parent);
+                        TextView textView = (TextView)view.findViewById(android.R.id.text1);
+
+                        textView.setSingleLine(true);
+                        textView.setMaxLines(1);
+
+
+
+                        return view;
+                    }
+                };
+
+                jcPlayerView.initPlaylist(jcAudios,null);
                 listView.setAdapter(arrayAdapter);
             }
 
