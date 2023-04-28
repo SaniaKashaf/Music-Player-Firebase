@@ -12,17 +12,25 @@ import android.os.Bundle;
 import android.provider.OpenableColumns;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
+
+import java.util.ArrayList;
 
 @SuppressWarnings("ALL")
 public class MainActivity extends AppCompatActivity {
@@ -30,10 +38,42 @@ public class MainActivity extends AppCompatActivity {
     private boolean checkPermission = false;
     Uri uri;
     String songName,songUrl;
+    ListView listView;
+
+    ArrayList<String> arrayListSongsName=new ArrayList<>();
+    ArrayList<String> arrayListSongsUrl=new ArrayList<>();
+    ArrayAdapter<String> arrayAdapter;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        listView=findViewById(R.id.myListView);
+retreiveSongs();
+    }
+
+    private void retreiveSongs() {
+        DatabaseReference databaseReference=FirebaseDatabase.getInstance().getReference("Songs");
+        databaseReference.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                for (DataSnapshot ds: snapshot.getChildren()){
+                    Song songObj=ds.getValue(Song.class);
+                    arrayListSongsName.add(songObj.getSongName());
+                    arrayListSongsUrl.add(songObj.getSongUrl());
+
+                }
+                arrayAdapter=new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_list_item_1,arrayListSongsName);
+                listView.setAdapter(arrayAdapter);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+
+
     }
 
     @Override
